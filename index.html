@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Practice App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            justify-content: space-between; /* Ensure content is spread out */
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            max-width: 600px;
+            height: 150px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        #displayText {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            line-height: 1.5;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+
+        /* Style for the footer */
+        footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        footer img {
+            width: 100px; /* Adjust the size of the photo */
+            height: auto;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        footer p {
+            font-size: 1rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Reading Practice App</h1>
+    <textarea id="textInput" placeholder="Paste text here..."></textarea>
+    <button id="readTextBtn">Start Reading</button>
+    <div id="displayText"></div>
+
+    <!-- Footer section with your image and text -->
+    <footer>
+        <img src="https://drive.usercontent.google.com/download?id=1HAs-n0FEyAllWnHNS_Jro5yBEI6qjpX8&export=view&authuser=0" alt="Hasitha Arambage"> <!-- Replace with your photo URL -->
+        <p>Designed by Hasitha Arambage</p>
+    </footer>
+
+    <script>
+        // Check if the browser supports speech synthesis
+        if ('speechSynthesis' in window) {
+            const synth = window.speechSynthesis;
+            let ukVoice = null;
+
+            // Load UK English or fallback English voice
+            function loadVoices() {
+                const voices = synth.getVoices();
+                ukVoice = voices.find(voice => voice.lang === 'en-GB') || voices.find(voice => voice.lang.startsWith('en'));
+                
+                if (!ukVoice) {
+                    console.warn("No UK English voice found. Using default English voice if available.");
+                }
+            }
+
+            // Load voices and retry if necessary
+            function initializeVoices() {
+                if (synth.getVoices().length) {
+                    loadVoices();
+                } else {
+                    synth.onvoiceschanged = loadVoices;
+                }
+            }
+
+            initializeVoices();
+
+            // Function to read text aloud
+            function readText(text, onEndCallback) {
+                if (!ukVoice) {
+                    console.error("English voice not available.");
+                    return;
+                }
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.voice = ukVoice;
+                utterance.rate = 0.5; // Slower speed for better synchronization
+
+                // Trigger the callback when the speech ends
+                utterance.onend = onEndCallback;
+                synth.speak(utterance);
+            }
+
+            // Function to highlight words
+            function highlightWords(text, rate) {
+                const words = text.split(' ');
+                const displayTextDiv = document.getElementById("displayText");
+                displayTextDiv.innerHTML = words.map((word, index) => `<span id="word${index}">${word}</span>`).join(' ');
+
+                let index = 0;
+
+                // Calculate the duration of each word based on the speech rate (words per minute)
+                const wordDuration = 500; // Faster highlighting by reducing the time between words
+
+                function highlightNextWord() {
+                    if (index > 0) {
+                        document.getElementById("word" + (index - 1)).classList.remove("highlight");
+                    }
+
+                    if (index < words.length) {
+                        document.getElementById("word" + index).classList.add("highlight");
+                        index++;
+                        setTimeout(highlightNextWord, wordDuration); // Faster word highlighting
+                    }
+                }
+
+                highlightNextWord();
+            }
+
+            // Start reading and highlighting
+            document.getElementById("readTextBtn").addEventListener("click", function() {
+                const text = document.getElementById("textInput").value;
+                if (text) {
+                    readText(text, function() {
+                        console.log("Reading finished");
+                    });
+                    highlightWords(text, 80); // Adjust rate as necessary for slower reading speed
+                } else {
+                    alert("Please enter some text to read.");
+                }
+            });
+        } else {
+            alert("Speech synthesis is not supported in this browser. Please try a different browser like Chrome or Firefox on a desktop or Android device.");
+        }
+    </script>
+
+</body>
+</html>
